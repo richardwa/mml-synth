@@ -1,0 +1,82 @@
+<!doctype html>
+<head>
+ <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <script src="mml-parse.js" type="text/javascript"></script>
+</head>
+<body>
+    <div>
+        <br />
+        <textarea cols="80" rows="20" id="mml-data">
+# Sonic - Green Hill Zone
+
+o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb>ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8>g<e>e<f>f<g>g
+
+,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fer8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1
+
+,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8>ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab>cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
+        </textarea><br>
+        <button onclick="play()">Play</button>
+        <button onclick="stop()">Stop</button>
+    </div>
+
+    <div>
+        <ul>
+            <li># = comment</li>
+            <li>t = tempo (default 60)</li>
+            <li>o = octave (default o5)</li>
+            <li>v = volume</li>
+            <li>l = change default note length (default 4, quater notes)</li>
+            <li>r = rest note</li>
+            <ul>
+                <li>1, 2, 4, 8, 16 = note length</li>
+                <li>. = dotted (150%)</li>
+            </ul>
+            <li>cdefgab = note (can append half note / length modifiers)</li>
+            <ul>
+                <li>+ = half note up (sharp)</li>
+                <li>- = half note down (flat)</li>
+                <li>1, 2, 4, 8, 16 = note length</li>
+                <li>. = dotted (150%)</li>
+            </ul>
+            <li>&gt; = 1 octave up</li>
+            <li>&lt; = 1 octave down</li>
+            <li>, = start next track (plays simultaneously)</li>
+            <li>&amp; = combine with next note</li>
+        </ul>
+    </div>
+</body>
+<script type="text/javascript">
+    // create web audio api context
+    var audioCtx = new (window.AudioContext || window.webkitAudioContext)(),
+        gainNode = audioCtx.createGain(),
+        timers = [];
+
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.value = 0.05;
+
+    function stop(){
+        timers.forEach(id => clearTimeout(id));
+    }
+
+    
+    function play(){
+        var mmlData = document.querySelector("#mml-data");
+        mmlParse(mmlData.value).forEach(function (note){
+            var id = setTimeout(function (){
+                console.log(note);
+                var hz = Math.floor(Math.pow(2,(note.midiKey - 69)/12) * 440),
+                    oscillator = audioCtx.createOscillator();
+                oscillator.connect(gainNode);
+                oscillator.type = 'square';
+                oscillator.frequency.value = hz;
+                oscillator.start();
+
+                //off
+                setTimeout(function (){
+                    oscillator.stop();
+                }, note.duration);
+            }, note.startTime);
+            timers.push(id);
+        })
+    };
+</script>
