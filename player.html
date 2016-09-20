@@ -66,9 +66,11 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
 
     function stop(){
         timers.forEach(id => clearTimeout(id));
+        timers = [];
     }
 
     function play(){
+        stop();
         var mmlData = document.querySelector("#mml-data");
         mmlParse(mmlData.value).forEach(function (note){
             var id = setTimeout(function (){
@@ -79,7 +81,7 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
                 gain.gain.value = note.volume/127;
                 gain.connect(masterVolume);
                 oscillator.connect(gain);
-                oscillator.type = 'sine';
+                oscillator.type = 'square';
                 oscillator.frequency.value = hz;
                 oscillator.start();
 
