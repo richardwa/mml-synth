@@ -2,20 +2,42 @@
 <head>
  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <script src="mml-parse.js" type="text/javascript"></script>
+    <style>
+    html{
+        font-family: monospace; 
+    }
+    .text {
+        width:60em;
+        height:20em;
+        border:1px solid gray;
+    }
+    </style>
 </head>
 <body>
     <div>
-        <canvas id="analyser_render"></canvas>
+        <canvas id="analyser_render" style="width:60em;height:10em"></canvas>
         <br />
-        <textarea cols="80" rows="20" id="mml-data">
+        <div>
+            <div id="mirror"></div>
+            <textarea class="text" id="mml-data">
 # Sonic - Green Hill Zone
 
-o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb>ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8>g<e>e<f>f<g>g
+o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb>
+ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddd
+dddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d
+<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8
+>g<e>e<f>f<g>g
 
-,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fer8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1
+,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fe
+r8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4
+g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1
 
-,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8>ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab>cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
-        </textarea><br>
+,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8>
+ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab>
+cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
+            </textarea>
+        </div>  
+        <br>
         <button onclick="play()">Play</button>
         <button onclick="stop()">Stop</button>
         <input type=range oninput="changeVolume(this.value)"/>
@@ -52,11 +74,13 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
     var audioCtx = new (window.AudioContext || window.webkitAudioContext)(),
         masterVolume = audioCtx.createGain(),
         analyser = audioCtx.createAnalyser(),
-        canvas = document.getElementById('analyser_render');
-        ctx = canvas.getContext('2d');
-        timers = [];
+        canvas = document.getElementById('analyser_render'),
+        ctx = canvas.getContext('2d'),
+        timers = [],
+        mmlDataNode = document.querySelector("#mml-data"),
+        mmlOriginal;
 
-    masterVolume.connect(analyser);
+    analyser.fftSize = 2048;
     analyser.connect(audioCtx.destination);
     masterVolume.gain.value = 0.05;
 
@@ -65,33 +89,50 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
     }
 
     function stop(){
+        masterVolume.disconnect(analyser);
         timers.forEach(id => clearTimeout(id));
         timers = [];
+        mmlDataNode.value = mmlOriginal;
+        mmlDataNode.readOnly = false;
     }
 
     function play(){
-        stop();
-        var mmlData = document.querySelector("#mml-data");
-        mmlParse(mmlData.value).forEach(function (note){
+        masterVolume.connect(analyser);
+        mmlOriginal = mmlDataNode.value;
+        var mmlData = mmlOriginal,
+            endTime = 0;
+        mmlDataNode.readOnly = true;
+        mmlParse(mmlData).forEach(function (note){
             var id = setTimeout(function (){
                 var hz = Math.floor(Math.pow(2,(note.midiKey - 69)/12) * 440),
                     oscillator = audioCtx.createOscillator(),
                     gain = audioCtx.createGain();
+                mmlData = mmlData.substring(0,note.foundAt)+
+                    "\u258A"+
+                    mmlData.substring(note.foundAt+1);
 
+                mmlDataNode.value = mmlData;
                 gain.gain.value = note.volume/127;
                 gain.connect(masterVolume);
                 oscillator.connect(gain);
-                oscillator.type = 'square';
+                oscillator.type = 'sine';
                 oscillator.frequency.value = hz;
                 oscillator.start();
 
                 //off
                 setTimeout(function (){
                     oscillator.stop();
+                    mmlData = mmlData.substring(0,note.foundAt)+
+                    note.clause.charAt(0)+
+                    mmlData.substring(note.foundAt+1);
+                    mmlDataNode.value = mmlData;
                 }, note.duration);
             }, note.startTime);
+
+            endTime = Math.max(endTime, note.startTime+note.duration);
             timers.push(id);
         })
+        timers.push(setTimeout(stop, endTime));
     };
 
     // frameLooper() animates any style of graphics you wish to the audio frequency
@@ -102,13 +143,10 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
         analyser.getByteFrequencyData(fbc_array);
         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
         ctx.fillStyle = '#00CCFF'; // Color of the bars
-        bars = 100;
-        for (var i = 0; i < bars; i++) {
-            bar_x = i * 3;
-            bar_width = 2;
-            bar_height = -(fbc_array[i] / 2);
-            //  fillRect( x, y, width, height ) // Explanation of the parameters below
-            ctx.fillRect(bar_x, canvas.height, bar_width, bar_height);
+        for (var i = 0; i < analyser.frequencyBinCount ; i++) {
+            let bar_x = i * 3;
+            let bar_height = -(fbc_array[i] / 2);
+            ctx.fillRect(bar_x, canvas.height, 2, bar_height);
         }
     }
     frameLooper();
