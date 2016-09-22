@@ -7,6 +7,7 @@
         font-family: monospace; 
     }
     .text {
+        word-break: break-all;
         width:60em;
         height:20em;
         border:1px solid gray;
@@ -22,19 +23,11 @@
             <textarea class="text" id="mml-data">
 # Sonic - Green Hill Zone
 
-o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb>
-ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddd
-dddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d
-<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8
->g<e>e<f>f<g>g
+o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb> ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddd dddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d <fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8 >g<e>e<f>f<g>g
 
-,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fe
-r8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4
-g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1
+,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fe r8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4 g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1 
 
-,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8>
-ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab>
-cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
+,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8> ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab> cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
             </textarea>
         </div>  
         <br>
@@ -96,6 +89,11 @@ cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
         mmlDataNode.readOnly = false;
     }
 
+    function setCharAt(ch, index, str){
+        return str.substring(0,index) + ch +
+               str.substring(index+1);
+    }
+    
     function play(){
         masterVolume.connect(analyser);
         mmlOriginal = mmlDataNode.value;
@@ -107,24 +105,20 @@ cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
                 var hz = Math.floor(Math.pow(2,(note.midiKey - 69)/12) * 440),
                     oscillator = audioCtx.createOscillator(),
                     gain = audioCtx.createGain();
-                mmlData = mmlData.substring(0,note.foundAt)+
-                    "\u258A"+
-                    mmlData.substring(note.foundAt+1);
 
+                mmlData = setCharAt("\u258A", note.foundAt, mmlData);
                 mmlDataNode.value = mmlData;
                 gain.gain.value = note.volume/127;
                 gain.connect(masterVolume);
                 oscillator.connect(gain);
-                oscillator.type = 'sine';
+                oscillator.type = 'square';
                 oscillator.frequency.value = hz;
                 oscillator.start();
 
                 //off
                 setTimeout(function (){
                     oscillator.stop();
-                    mmlData = mmlData.substring(0,note.foundAt)+
-                    note.clause.charAt(0)+
-                    mmlData.substring(note.foundAt+1);
+                    mmlData = setCharAt(note.clause.charAt(0), note.foundAt, mmlData);
                     mmlDataNode.value = mmlData;
                 }, note.duration);
             }, note.startTime);
