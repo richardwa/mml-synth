@@ -140,6 +140,7 @@ this.addEventListener("message", (function() {
             stop: function(){
                 timers.forEach(id => clearTimeout(id));
                 timers = [];
+                self.postMessage({type:"end"});
             },
             play: function (mml){
                 var endTime = 0;
@@ -148,7 +149,7 @@ this.addEventListener("message", (function() {
                         self.postMessage({type:"note-on", data:note});
                         setTimeout(function (){
                             self.postMessage({type:"note-off", data:note});
-                        }, note.duration);
+                        }, note.duration * 0.8);
                     }, note.startTime));
 
                     endTime = Math.max(endTime, note.startTime+note.duration);
