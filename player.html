@@ -1,7 +1,6 @@
 <!doctype html>
 <head>
  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <script src="mml-parse.js" type="text/javascript"></script>
     <style>
     html{
         font-family: monospace; 
@@ -64,44 +63,33 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
 </body>
 <script type="text/javascript">
     // create web audio api context
-    var audioCtx = new (window.AudioContext || window.webkitAudioContext)(),
+    var mmlWorker = new Worker("mml-worker.js"),
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)(),
         masterVolume = audioCtx.createGain(),
         analyser = audioCtx.createAnalyser(),
         canvas = document.getElementById('analyser_render'),
         ctx = canvas.getContext('2d'),
-        timers = [],
+        oscillators = [], //sparse array
         mmlDataNode = document.querySelector("#mml-data"),
+        mmlData,
         mmlOriginal;
 
+    masterVolume.connect(analyser);
     analyser.fftSize = 2048;
-    analyser.connect(audioCtx.destination);
     masterVolume.gain.value = 0.05;
 
     function changeVolume(val){
         masterVolume.gain.value = 0.1 * val/100;
     }
 
-    function stop(){
-        masterVolume.disconnect(analyser);
-        timers.forEach(id => clearTimeout(id));
-        timers = [];
-        mmlDataNode.value = mmlOriginal;
-        mmlDataNode.readOnly = false;
-    }
-
     function setCharAt(ch, index, str){
         return str.substring(0,index) + ch +
                str.substring(index+1);
     }
-    
-    function play(){
-        masterVolume.connect(analyser);
-        mmlOriginal = mmlDataNode.value;
-        var mmlData = mmlOriginal,
-            endTime = 0;
-        mmlDataNode.readOnly = true;
-        mmlParse(mmlData).forEach(function (note){
-            var id = setTimeout(function (){
+
+    mmlWorker.addEventListener("message", (function (){
+        var methods = {
+            "note-on": function (note){
                 var hz = Math.floor(Math.pow(2,(note.midiKey - 69)/12) * 440),
                     oscillator = audioCtx.createOscillator(),
                     gain = audioCtx.createGain();
@@ -114,19 +102,35 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
                 oscillator.type = 'square';
                 oscillator.frequency.value = hz;
                 oscillator.start();
+                oscillators[note.foundAt] = oscillator;
+            },
+            "note-off": function (note){
+                oscillators[note.foundAt].stop();
+                mmlData = setCharAt(note.clause.charAt(0), note.foundAt, mmlData);
+                mmlDataNode.value = mmlData;
+            },
+            "end" : function (){
+                masterVolume.disconnect(audioCtx.destination);
+                mmlDataNode.value = mmlOriginal;
+                mmlDataNode.readOnly = false;
+            }
+        };
 
-                //off
-                setTimeout(function (){
-                    oscillator.stop();
-                    mmlData = setCharAt(note.clause.charAt(0), note.foundAt, mmlData);
-                    mmlDataNode.value = mmlData;
-                }, note.duration);
-            }, note.startTime);
+        return function (ev){
+            var msg = ev.data;
+            methods[msg.type](msg.data);
+        };
+    })());
 
-            endTime = Math.max(endTime, note.startTime+note.duration);
-            timers.push(id);
-        })
-        timers.push(setTimeout(stop, endTime));
+    function stop(){
+        mmlWorker.postMessage({type:"stop"});
+    }
+    function play(){
+        masterVolume.connect(audioCtx.destination);
+        mmlOriginal = mmlDataNode.value;
+        mmlData = mmlOriginal,
+        mmlDataNode.readOnly = true;
+        mmlWorker.postMessage({type: "play", data: mmlData});
     };
 
     // frameLooper() animates any style of graphics you wish to the audio frequency

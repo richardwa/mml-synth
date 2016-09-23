@@ -116,9 +116,6 @@ var mmlParse = (function () {
             }
         }
 
-        
-
-        //
         var events = stateEvents + noteEvents,
             prevEvent = -1;
         for (let i=0;i<mml.length;i++){
@@ -134,3 +131,36 @@ var mmlParse = (function () {
         return notes;
    }; 
 })();
+
+
+//add timings handler using webworker api
+this.addEventListener("message", (function() {
+    var timers = [],
+        methods = {
+            stop: function(){
+                timers.forEach(id => clearTimeout(id));
+                timers = [];
+            },
+            play: function (mml){
+                var endTime = 0;
+                mmlParse(mml).forEach(function (note){
+                    timers.push(setTimeout(function (){
+                        self.postMessage({type:"note-on", data:note});
+                        setTimeout(function (){
+                            self.postMessage({type:"note-off", data:note});
+                        }, note.duration);
+                    }, note.startTime));
+
+                    endTime = Math.max(endTime, note.startTime+note.duration);
+                });
+                timers.push(setTimeout(function (){
+                    self.postMessage({type:"end"});
+                }, endTime));
+            }
+        };
+
+    return function(ev){
+        var msg = ev.data;
+        methods[msg.type](msg.data);
+    }
+})());
