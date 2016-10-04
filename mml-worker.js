@@ -41,7 +41,7 @@ var mmlParse = (function () {
         var mml = mmlText.replace(/\#.*$/gm, o => "@".repeat(o.length)).toLowerCase();
 
         //state
-        var tempo = 60,
+        var tempo = 120,
             tiesNextNote = 0,
             noteLength = 4, 
             octave = 5,

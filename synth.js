@@ -48,7 +48,7 @@ var synth = (function (audioCtx){
                 ramp: "exponentialRampToValueAtTime",
                 duration: duration,
                 //exponentials cannot be set to zero
-                level: level==0?0.01:level
+                level: level==0?0.0001:level
             };
         }
         
@@ -71,7 +71,7 @@ var synth = (function (audioCtx){
             param[state.ramp](state.level, now);
         }
         param.cancelScheduledValues(now);
-        param.setValueAtTime(0, now);
+        param.value = 0;
         //schedule all except last phase
         phases.slice(0,phases.length - 1).forEach(schedule);
         return {
@@ -93,13 +93,13 @@ var synth = (function (audioCtx){
             var hz = Math.floor(Math.pow(2,(midiKey- 69)/12) * 440),
                 level = velocity/127,
                 carry = carrier(hz),
-                mod = fmod(carry, 3, .2),
-                env = adsr(carry, p(10,level), p(200,level*.8), p(500,0));
+                //mod = fmod(carry, 3, .2),
+                env = adsr(carry, p(10,level,false), p(500,0));
 
             //save release function
             currentNotes[id] = function(){
                 var release = env.stop();
-                mod.stop(release);
+                //mod.stop(release);
                 carry.stop(release);
             };
         },
