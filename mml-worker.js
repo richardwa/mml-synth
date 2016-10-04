@@ -86,7 +86,7 @@ var mmlParse = (function () {
             }else{
                 durationMillis += tiesNextNote;
                 tiesNextNote = 0;
-                let midiKey = getMidiKey(octave, clause);
+                var midiKey = getMidiKey(octave, clause);
                 if (midiKey){
                     notes.push({
                         //some meta data, perhaps for character higlighting
@@ -149,7 +149,7 @@ this.addEventListener("message", (function() {
                         self.postMessage({type:"note-on", data:note});
                         setTimeout(function (){
                             self.postMessage({type:"note-off", data:note});
-                        }, note.duration * 0.8);
+                        }, note.duration);
                     }, note.startTime));
 
                     endTime = Math.max(endTime, note.startTime+note.duration);

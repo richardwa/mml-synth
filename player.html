@@ -1,6 +1,7 @@
 <!doctype html>
 <head>
  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+ <script src="synth.js"></script>
     <style>
     html{
         font-family: monospace; 
@@ -22,17 +23,17 @@
             <textarea class="text" id="mml-data">
 # Sonic - Green Hill Zone
 
-o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+bb>ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccc>a+f>d<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8>g<e>e<f>f<g>g
+o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o4cccccccccccccccccc<aaa+a+bb>ccccccccccccccccccccccccccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddccccccdeffffffffeeeeecdeffffffffeeeeecdeffffffffeeeeeeeeddddddddcccccccca+f>d<fa+f>d<fa+f>d<fa+fr8faeb+eaeb+eaeb+eaer8eg+d+b+d+g+d+b+d+g+d+b+d+g+d+b+d+l4.<gdgl8>g<e>e<f>f<g>g
 
-,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fe r8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4 g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1 
+,v110l8r8o2a>a<aa+>a+<b>bccccccccr8>>v127dr4er8dr8fr4er4d1r4dr4er4fr8dr4er4fr8fr4fer8dr8e1r2b+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4c2.&cb+a4b+b4b+b4g2.a>ed4cc-4c<b4g2.&gb+a4b+b4b+b4g2.aaf4ag4ag4cced1&d2&dcde1&e2.cced+1&d+2dcd+d1
 
-,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8> ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab> cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
+,v110o5r1e8r4d8r4e8r1r2r1r2r1r2r1r2r1r8l4c<afcbgec-b+afcbgec-b+afcbgec-afd<a>gec<gl8>ec2&cecd<b2gab>ec2&cecd<b2gab>ec2&cecd<b2gabb+a2.>>e4c4<a4gab+l4.<a+agfe4d4<ab>cde4a4g+gfd+d4c4l8r8>gaggga>e4efegeec
             </textarea>
         </div>  
         <br>
         <button onclick="play()">Play</button>
         <button onclick="stop()">Stop</button>
-        <input type=range oninput="changeVolume(this.value)"/>
+        <input type=range oninput="synth.setVolume(this.value)"/>
     </div>
 
     <div>
@@ -64,23 +65,14 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
 <script type="text/javascript">
     // create web audio api context
     var mmlWorker = new Worker("mml-worker.js"),
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)(),
-        masterVolume = audioCtx.createGain(),
-        analyser = audioCtx.createAnalyser(),
-        canvas = document.getElementById('analyser_render'),
-        ctx = canvas.getContext('2d'),
-        oscillators = [],
+        canvas = document.querySelector("#analyser_render"),
+        ctx = canvas.getContext("2d"),
         mmlDataNode = document.querySelector("#mml-data"),
+        analyser = synth.createAnalyser(),
         mmlData,
         mmlOriginal;
 
-    masterVolume.connect(analyser);
-    analyser.fftSize = 2048;
-    masterVolume.gain.value = 0.05;
 
-    function changeVolume(val){
-        masterVolume.gain.value = 0.1 * val/100;
-    }
 
     function setCharAt(ch, index, str){
         return str.substring(0,index) + ch +
@@ -90,27 +82,16 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
     mmlWorker.addEventListener("message", (function (){
         var methods = {
             "note-on": function (note){
-                var hz = Math.floor(Math.pow(2,(note.midiKey - 69)/12) * 440),
-                    oscillator = audioCtx.createOscillator(),
-                    gain = audioCtx.createGain();
-
+                synth.noteOn(note.foundAt, note.midiKey, note.volume);
                 mmlData = setCharAt("\u258A", note.foundAt, mmlData);
                 mmlDataNode.value = mmlData;
-                gain.gain.value = note.volume/127;
-                gain.connect(masterVolume);
-                oscillator.connect(gain);
-                oscillator.type = 'square';
-                oscillator.frequency.value = hz;
-                oscillator.start();
-                oscillators[note.foundAt] = oscillator;
             },
             "note-off": function (note){
-                oscillators[note.foundAt].stop();
+                synth.noteOff(note.foundAt);
                 mmlData = setCharAt(note.clause.charAt(0), note.foundAt, mmlData);
                 mmlDataNode.value = mmlData;
             },
             "end" : function (){
-                masterVolume.disconnect(audioCtx.destination);
                 mmlDataNode.value = mmlOriginal;
                 mmlDataNode.readOnly = false;
             }
@@ -126,7 +107,6 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
         mmlWorker.postMessage({type:"stop"});
     }
     function play(){
-        masterVolume.connect(audioCtx.destination);
         mmlOriginal = mmlDataNode.value;
         mmlData = mmlOriginal,
         mmlDataNode.readOnly = true;
@@ -142,8 +122,8 @@ o5t175l16>afafbgbgb+ab+a>dc-dc-ececececececececv110l8o3cccccccccccccccccc<aaa+a+
         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
         ctx.fillStyle = '#00CCFF'; // Color of the bars
         for (var i = 0; i < analyser.frequencyBinCount ; i++) {
-            let bar_x = i * 3;
-            let bar_height = -(fbc_array[i] / 2);
+            var  bar_x = i * 3;
+            var bar_height = -(fbc_array[i] / 2);
             ctx.fillRect(bar_x, canvas.height, 2, bar_height);
         }
     }
