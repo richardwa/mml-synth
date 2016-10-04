@@ -1,3 +1,4 @@
+"use strict"
 var synth = (function (audioCtx){
     var masterVolume = audioCtx.createGain(),
         currentNotes = [];
@@ -6,14 +7,11 @@ var synth = (function (audioCtx){
         var gain = audioCtx.createGain(),
             osc = audioCtx.createOscillator();
 
-        gain.gain.value = 1;
         gain.connect(masterVolume);
-
         osc.connect(gain);
         osc.type = 'sine';
         osc.frequency.value = freq;
         osc.start(0);
-
         return {
             baseFreq: freq,
             freqSocket: osc.frequency,
@@ -43,30 +41,45 @@ var synth = (function (audioCtx){
         }
     }
 
+    //parameter constructor
+    function p(duration, level, exponential = true){
+        if (exponential){
+            return {
+                ramp: "exponentialRampToValueAtTime",
+                duration: duration,
+                //exponentials cannot be set to zero
+                level: level==0?0.01:level
+            };
+        }
+        
+        return {
+            ramp: "linearRampToValueAtTime",
+            duration: duration,
+            level: level
+        };
+    }
+
     //node is oscillator being modified
-    //level should be under 1.0 (a percentage)
-    //all other values in milliseconds
-    function envelope(node, attack, decay, level, sustain, release) {
+    //phases: adsr env
+    function adsr(node, ...phases) {
         var gain = node.gainSocket,
             param = gain.gain,
             now = audioCtx.currentTime;
 
-        param.setValueAtTime(0, now);
-        now += attack/1000;
-        param.linearRampToValueAtTime(1, now);
-        now += decay/1000;
-        param.linearRampToValueAtTime(level, now);
-        if (sustain){ 
-            now += sustain/1000;
-            param.linearRampToValueAtTime(zero, now);
+        function schedule(state){
+            now += state.duration/1000;
+            param[state.ramp](state.level, now);
         }
-
+        param.cancelScheduledValues(now);
+        param.setValueAtTime(0, now);
+        //schedule all except last phase
+        phases.slice(0,phases.length - 1).forEach(schedule);
         return {
             stop: () => {
-                var now = audioCtx.currentTime;
+                now = audioCtx.currentTime;
                 param.cancelScheduledValues(now);
-                now += release/1000;
-                param.linearRampToValueAtTime(0, now); 
+                //schedule last phase - release
+                schedule(phases[phases.length -1]);
                 return now;
             }
         };
@@ -78,9 +91,10 @@ var synth = (function (audioCtx){
     return {
         noteOn: function (id, midiKey, velocity){
             var hz = Math.floor(Math.pow(2,(midiKey- 69)/12) * 440),
+                level = velocity/127,
                 carry = carrier(hz),
-                mod = fmod(carry, 2, .5),
-                env = envelope(carry, 200, 200, .6, 0, 500);
+                mod = fmod(carry, 3, .2),
+                env = adsr(carry, p(10,level), p(200,level*.8), p(500,0));
 
             //save release function
             currentNotes[id] = function(){
