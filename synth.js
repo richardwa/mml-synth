@@ -93,14 +93,14 @@ var synth = (function (audioCtx){
             var hz = Math.floor(Math.pow(2,(midiKey- 69)/12) * 440),
                 level = velocity/127,
                 carry = carrier(hz),
-                //mod = fmod(carry, 3, .2),
-                env = adsr(carry, p(10,level,false), p(500,0));
+                mod = fmod(carry, 2.1, .3),
+                env = adsr(carry, p(10,level,false), p(500,0,false));
 
             //save release function
             currentNotes[id] = function(){
-                var release = env.stop();
-                //mod.stop(release);
+                var release = env.stop()+.01;
                 carry.stop(release);
+                mod.stop(release);
             };
         },
         noteOff: function (id){
