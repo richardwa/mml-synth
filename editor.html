@@ -1,19 +1,61 @@
 <!doctype html>
 <head>
- <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="lib/jsplumb/jsPlumb-2.1.7-min.js"></script>
+
     <style>
-    html{
-        font-family: monospace; 
-    }
+html{
+    font-family: monospace; 
+}
     .text {
         word-break: break-all;
         width:60em;
         height:20em;
         border:1px solid gray;
     }
+    #plumb {
+        padding: 1em;
+        height: 300px;
+        width: 600px;
+        border: 1px solid gray;
+    }
+    #plumb div {
+        position: absolute;
+        padding: 1em;
+        display: inline;
+        border: 1px solid gray;
+    }
     </style>
 </head>
 <body>
+    <div id="plumb"> </div>
 </body>
 <script type="text/javascript">
+var container = document.getElementById("plumb");
+var plumb = jsPlumb.getInstance();
+({
+    PaintStyle:{ 
+        lineWidth:6, 
+        strokeStyle:"#567567", 
+        outlineColor:"black", 
+        outlineWidth:1 
+    },
+    Container: container,
+    Connector:[ "Bezier", { curviness: 30 } ],
+    Endpoint:[ "Dot", { radius:5 } ],
+    EndpointStyle : { fillStyle: "#567567"  },
+    Anchor : [ 0.5, 0.5, 1, 1 ]
+});
+
+function addNode(str){
+    var el = document.createElement("div");
+    el.innerHTML = str;
+    container.appendChild(el);
+    plumb.draggable(el,{containment:container});
+    return el;
+}
+
+plumb.connect({ source: addNode("one"), target: addNode("two")});
+
 </script>

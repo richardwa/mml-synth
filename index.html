@@ -1,7 +1,8 @@
 <!doctype html>
 <head>
- <meta http-equiv="content-type" content="text/html; charset=utf-8" />
- <script src="synth.js"></script>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="js/synth.js"></script>
     <style>
     html{
         font-family: monospace; 
@@ -63,7 +64,7 @@ o4l1rrrrrrrrrrrrrrrrrl8r4r8ea>c<ea>c<e4dgbdgbd4ea>c<ea>c<e4.eb4eb4.ea>c<ea>c<e4d
 </body>
 <script type="text/javascript">
     // create web audio api context
-    var mmlWorker = new Worker("mml-worker.js"),
+    var mmlWorker = new Worker("js/mml-worker.js"),
         canvas = document.querySelector("#analyser_render"),
         ctx = canvas.getContext("2d"),
         mmlDataNode = document.querySelector("#mml-data"),
